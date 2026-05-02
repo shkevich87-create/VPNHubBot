@@ -4,8 +4,8 @@
 1. В `.env` заполните:
    ```
    WINKPAY_BASE_URL=https://panel.winkpay.digital
-   WINKPAY_API_TOKEN=keedsohrrkuk1ymhdbmev2b2zabh251p
-   WINKPAY_MERCHANT_ID=ec82968d-0fa5-4b9a-86f1-e51d1a3a5fc5
+   WINKPAY_API_TOKEN=replace-with-your-token
+   WINKPAY_MERCHANT_ID=replace-with-your-merchant-id
    WINKPAY_CALLBACK_URL=https://<ваш-домен>/winkpay/callback
    WINKPAY_SUCCESS_URL=https://<ваш-домен>/pay/success
    WINKPAY_FAIL_URL=https://<ваш-домен>/pay/fail

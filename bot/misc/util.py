@@ -28,6 +28,11 @@ class Config:
     referral_percent: int
     winkpay_api_token: str = ''
     winkpay_merchant_id: str = ''
+    xui_use_subscription_link: bool = False
+    xui_subscription_port: int = 2096
+    xui_subscription_path: str = '/sub/'
+    xui_subscription_host: str = ''
+    xui_subscription_scheme: str = ''
     minimum_withdrawal_amount: int
     COUNT_SECOND_DAY: int = 86400
     COUNT_SECOND_MOTH: int = 2678400
@@ -139,6 +144,33 @@ class Config:
         self.winkpay_merchant_id = os.getenv('WINKPAY_MERCHANT_ID', '')
         if not self.winkpay_api_token or not self.winkpay_merchant_id:
             raise ValueError('Set WINKPAY_API_TOKEN and WINKPAY_MERCHANT_ID')
+        self.xui_use_subscription_link = (
+            os.getenv('XUI_USE_SUBSCRIPTION_LINK', 'False').lower()
+            in ('1', 'true', 'yes', 'on')
+        )
+        self.xui_subscription_port = int(
+            os.getenv('XUI_SUBSCRIPTION_PORT', '2096') or 2096
+        )
+        self.xui_subscription_path = os.getenv(
+            'XUI_SUBSCRIPTION_PATH',
+            '/sub/'
+        ) or '/sub/'
+        if not self.xui_subscription_path.startswith('/'):
+            self.xui_subscription_path = f'/{self.xui_subscription_path}'
+        if not self.xui_subscription_path.endswith('/'):
+            self.xui_subscription_path = f'{self.xui_subscription_path}/'
+        self.xui_subscription_host = os.getenv(
+            'XUI_SUBSCRIPTION_HOST',
+            ''
+        ).strip()
+        self.xui_subscription_scheme = os.getenv(
+            'XUI_SUBSCRIPTION_SCHEME',
+            ''
+        ).lower()
+        if self.xui_subscription_scheme not in ('', 'http', 'https'):
+            raise ValueError(
+                'XUI_SUBSCRIPTION_SCHEME must be empty, http, or https'
+            )
         self.yoomoney_token = os.getenv('YOOMONEY_TOKEN', '')
         self.yoomoney_wallet_token = os.getenv('YOOMONEY_WALLET', '')
         self.lava_token_secret = os.getenv('LAVA_TOKEN_SECRET', '')

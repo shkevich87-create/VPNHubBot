@@ -16,6 +16,10 @@ def generate_password(length=44):
     return encoded_password
 
 
+def generate_subscription_id():
+    return secrets.token_hex(12)
+
+
 class Shadowsocks(XuiBase):
     NAME_VPN = 'Shadowsocks 🦈'
     adress: str
@@ -60,6 +64,12 @@ class Shadowsocks(XuiBase):
         if client is None:
             await self.add_client(name)
             client = await self.get_client(name)
+        if CONFIG.xui_use_subscription_link:
+            if not client.get('subId'):
+                await self.delete_client(name)
+                await self.add_client(name)
+                client = await self.get_client(name)
+            return self.get_subscription_link(client)
         stream_settings = json.loads(info['streamSettings'])
         settings = json.loads(info['settings'])
         user_base64 = base64.b64encode(
@@ -91,7 +101,7 @@ class Shadowsocks(XuiBase):
         if password is None:
             password = generate_password(44)
         if subscription_id is None:
-            subscription_id = generate_password(12)[:-1]
+            subscription_id = generate_subscription_id()
         settings = {
             "clients": [
                 {

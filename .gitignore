@@ -143,3 +143,8 @@ cython_debug/
 .vscode
 
 logs/
+
+# Local production dumps and transfer archives
+*.tgz
+*.tar.gz
+*_source_for_codex.*

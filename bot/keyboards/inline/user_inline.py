@@ -19,7 +19,7 @@ async def replenishment(config, lang) -> InlineKeyboardMarkup:
     if config.winkpay_api_token != "":
         kb.button(
             text=_('payments_wallet_pay_btn', lang),
-            callback_data=ChoosingPyment(payment='WalletPay'))
+            callback_data=ChoosingPyment(payment='WinkPay'))
     if config.yookassa_shop_id != "" and config.yookassa_secret_key != "":
         kb.button(
             text=_('payments_yookassa_btn', lang),
