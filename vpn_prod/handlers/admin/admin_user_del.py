@@ -3,7 +3,7 @@ from aiogram.types import CallbackQuery, Message
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.context import FSMContext
-import aiosqlite
+import db_compat as aiosqlite
 import re
 from loguru import logger
 import py3xui

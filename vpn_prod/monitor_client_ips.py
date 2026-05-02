@@ -7,7 +7,7 @@
 """
 
 import asyncio
-import aiosqlite
+import db_compat as aiosqlite
 import re
 from datetime import datetime
 from loguru import logger

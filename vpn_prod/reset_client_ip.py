@@ -4,7 +4,7 @@
 """
 
 import asyncio
-import aiosqlite
+import db_compat as aiosqlite
 from loguru import logger
 import sys
 

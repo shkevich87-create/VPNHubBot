@@ -4,7 +4,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from loguru import logger
 from datetime import datetime
-import aiosqlite
+import db_compat as aiosqlite
 
 from handlers.database import db
 from handlers.tron_pay import tron_pay_manager

@@ -1,6 +1,6 @@
 import os
 import asyncio
-import aiosqlite
+import db_compat as aiosqlite
 from aiogram import Bot, Dispatcher
 from loguru import logger
 from handlers.database import db

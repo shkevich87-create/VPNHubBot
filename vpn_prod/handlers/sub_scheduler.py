@@ -1,5 +1,5 @@
 import asyncio
-import aiosqlite
+import db_compat as aiosqlite
 from datetime import datetime, timezone, timedelta
 from typing import List, Dict, Optional
 

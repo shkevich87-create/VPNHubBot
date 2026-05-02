@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify, request, render_template
-import aiosqlite
+import db_compat as aiosqlite
 import os
 from loguru import logger
 from dotenv import load_dotenv

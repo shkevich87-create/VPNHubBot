@@ -1,5 +1,5 @@
 import os
-import aiosqlite
+import db_compat as aiosqlite
 from datetime import datetime, timezone, timedelta
 from typing import Optional, Dict, List
 from loguru import logger
@@ -187,6 +187,27 @@ class Database:
                     sum DECIMAL(10,2) NOT NULL,
                     is_enable BOOLEAN NOT NULL DEFAULT 1,
                     create_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            ''')
+
+            await conn.execute('''
+                CREATE TABLE IF NOT EXISTS tariff_promo (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT NOT NULL,
+                    description TEXT,
+                    left_day INTEGER NOT NULL,
+                    server_id INTEGER,
+                    is_enable BOOLEAN NOT NULL DEFAULT 1,
+                    FOREIGN KEY (server_id) REFERENCES server_settings(id)
+                )
+            ''')
+
+            await conn.execute('''
+                CREATE TABLE IF NOT EXISTS Reviews (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    username TEXT NOT NULL,
+                    message TEXT NOT NULL,
+                    date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             ''')
             

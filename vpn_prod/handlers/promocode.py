@@ -1,6 +1,6 @@
 from typing import Optional, Dict, Tuple
 from loguru import logger
-import aiosqlite
+import db_compat as aiosqlite
 from handlers.database import db
 
 class PromoCodeManager:

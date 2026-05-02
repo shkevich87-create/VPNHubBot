@@ -123,7 +123,7 @@ async def process_support(message: Message):
 async def process_payments(message: Message):
     """Обработчик кнопки Мои платежи"""
     try:
-        import aiosqlite
+        import db_compat as aiosqlite
         
         logger.info(f"Запрос истории платежей от пользователя: {message.from_user.id}")
         
@@ -201,7 +201,7 @@ async def process_payments(message: Message):
 async def process_merge_subscriptions(message: Message):
     """Обработчик кнопки Объединить подписки - показывает сумму продления всех подписок"""
     try:
-        import aiosqlite
+        import db_compat as aiosqlite
         from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
         
         # Получаем все активные подписки пользователя с информацией о тарифах
@@ -321,7 +321,7 @@ async def process_merge_subscriptions(message: Message):
 async def pay_all_subscriptions(callback: CallbackQuery, state: FSMContext):
     """Обработчик оплаты всех подписок разом"""
     try:
-        import aiosqlite
+        import db_compat as aiosqlite
         from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
         from handlers.winkpay import winkpay_manager
         
@@ -489,7 +489,7 @@ async def pay_all_subscriptions(callback: CallbackQuery, state: FSMContext):
 async def check_bulk_payment(callback: CallbackQuery, state: FSMContext):
     """Проверка группового платежа и создание всех подписок"""
     try:
-        import aiosqlite
+        import db_compat as aiosqlite
         from asyncio import Lock
         from handlers.winkpay import winkpay_manager
         from handlers.buy_subscribe import subscription_manager
@@ -633,7 +633,7 @@ async def check_bulk_payment(callback: CallbackQuery, state: FSMContext):
 async def recreate_bulk_payment(callback: CallbackQuery, state: FSMContext):
     """Пересоздание группового платежа с новыми реквизитами"""
     try:
-        import aiosqlite
+        import db_compat as aiosqlite
         from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
         from handlers.winkpay import winkpay_manager
         
@@ -801,7 +801,7 @@ async def recreate_bulk_payment(callback: CallbackQuery, state: FSMContext):
 async def renew_individual_subscriptions(callback: CallbackQuery):
     """Показать список подписок для индивидуального продления"""
     try:
-        import aiosqlite
+        import db_compat as aiosqlite
         from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
         
         # Получаем все активные подписки

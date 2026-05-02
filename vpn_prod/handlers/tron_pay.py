@@ -4,7 +4,7 @@ from typing import Optional, Dict
 from loguru import logger
 from datetime import datetime, timedelta
 from decimal import Decimal, InvalidOperation
-import aiosqlite
+import db_compat as aiosqlite
 from handlers.database import db
 
 class TronPayAPI:

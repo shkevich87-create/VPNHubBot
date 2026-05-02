@@ -3,7 +3,7 @@ from aiogram.filters import Command
 from aiogram.types import Message, FSInputFile, ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove
 from loguru import logger
 import os
-import aiosqlite
+import db_compat as aiosqlite
 
 from handlers.database import db
 from handlers.user.user_kb import get_start_keyboard, get_unknown_command_keyboard

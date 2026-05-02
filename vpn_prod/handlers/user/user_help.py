@@ -2,7 +2,7 @@ from aiogram import Router, F
 from aiogram.types import CallbackQuery, FSInputFile, InlineKeyboardButton
 from loguru import logger
 import os
-import aiosqlite
+import db_compat as aiosqlite
 import urllib.parse
 
 from handlers.database import db

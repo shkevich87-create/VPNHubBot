@@ -2,7 +2,7 @@ from aiogram import Router, F
 from aiogram.types import CallbackQuery
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram.fsm.state import State, StatesGroup
-import aiosqlite
+import db_compat as aiosqlite
 from loguru import logger
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message

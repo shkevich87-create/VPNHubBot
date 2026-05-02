@@ -1,7 +1,7 @@
 from aiogram import Router, F
 from aiogram.types import CallbackQuery, FSInputFile, BufferedInputFile, Message
 from loguru import logger
-import aiosqlite
+import db_compat as aiosqlite
 from datetime import datetime
 import qrcode
 import io

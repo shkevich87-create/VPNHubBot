@@ -1,7 +1,7 @@
 from aiogram import Router, F
 from aiogram.types import CallbackQuery, Message
 from loguru import logger
-import aiosqlite
+import db_compat as aiosqlite
 from datetime import datetime
 from handlers.database import db
 from handlers.user.user_kb import get_trial_vless_keyboard, get_subscriptions_keyboard, get_continue_merge_keyboard, get_no_subscriptions_keyboard

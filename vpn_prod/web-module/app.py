@@ -1,8 +1,14 @@
 from flask import Flask, render_template, session, redirect, url_for, request
 from dotenv import load_dotenv
 import os
+import sys
 from loguru import logger
-import aiosqlite
+
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
+
+import db_compat as aiosqlite
 from handlers.admin import admin_bp
 from handlers.tariffs import tariffs_bp
 from handlers.promocodes import promocodes_bp

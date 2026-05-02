@@ -3,7 +3,7 @@ import uuid
 import time
 from loguru import logger
 from typing import Optional, Tuple, Dict, Any, List
-import aiosqlite
+import db_compat as aiosqlite
 from datetime import datetime
 from handlers.database import db
 from handlers.admin.admin_kb import get_admin_keyboard

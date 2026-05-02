@@ -2,7 +2,7 @@ from aiogram import Router, F
 from aiogram.filters import Command
 from aiogram.types import Message, CallbackQuery
 from loguru import logger
-import aiosqlite
+import db_compat as aiosqlite
 
 from handlers.database import db
 from handlers.admin.admin_kb import get_admin_keyboard, get_servers_keyboard

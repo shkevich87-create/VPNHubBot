@@ -4,7 +4,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from asyncio import Lock
 from handlers.database import db
 from loguru import logger
-import aiosqlite
+import db_compat as aiosqlite
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from handlers.promocode import promo_manager

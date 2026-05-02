@@ -4,7 +4,7 @@ from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.context import FSMContext
 from loguru import logger
 import os
-import aiosqlite
+import db_compat as aiosqlite
 
 from handlers.database import db
 from handlers.user.user_kb import get_back_keyboard

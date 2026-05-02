@@ -1,6 +1,6 @@
 from aiogram import Router, F
 from aiogram.types import CallbackQuery, InlineKeyboardButton
-import aiosqlite
+import db_compat as aiosqlite
 from loguru import logger
 
 from handlers.database import db

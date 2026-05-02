@@ -1,5 +1,5 @@
 import base64
-import aiosqlite
+import db_compat as aiosqlite
 from aiogram import Router, F
 from aiogram.types import CallbackQuery, InlineKeyboardButton
 from loguru import logger

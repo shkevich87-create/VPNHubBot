@@ -1,5 +1,5 @@
 import random
-import aiosqlite
+import db_compat as aiosqlite
 from loguru import logger
 from typing import Optional, Dict
 from handlers.x_ui import xui_manager

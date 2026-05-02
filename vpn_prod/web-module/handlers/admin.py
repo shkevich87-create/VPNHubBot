@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template, g, current_app, request
-import aiosqlite
+import db_compat as aiosqlite
 import os
 from loguru import logger
 

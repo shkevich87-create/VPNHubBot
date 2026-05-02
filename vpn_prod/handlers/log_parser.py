@@ -5,7 +5,7 @@
 
 import re
 import asyncio
-import aiosqlite
+import db_compat as aiosqlite
 from loguru import logger
 from typing import Dict, List, Optional, Set
 from datetime import datetime
