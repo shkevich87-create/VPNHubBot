@@ -142,7 +142,10 @@ class PostgresConnection:
         return None
 
     async def close(self):
-        await self.raw.close()
+        try:
+            await self.raw.close()
+        except RuntimeError:
+            pass
 
     async def _execute(self, sql: str, params=None):
         translated, values = _translate_sql(sql, params)
@@ -241,6 +244,7 @@ def _translate_sql(sql: str, params=None):
     translated = _translate_schema(translated)
     translated = _quote_user_table(translated)
     translated = _translate_insert_or_replace(translated)
+    translated = _translate_like_casts(translated)
     translated = _replace_placeholders(translated)
     return translated, _normalize_params(params)
 
@@ -326,6 +330,15 @@ def _translate_insert_or_replace(sql: str) -> str:
     )
 
 
+def _translate_like_casts(sql: str) -> str:
+    return re.sub(
+        r"\b((?:\w+\.)?(?:telegram_id|user_id|id))\s+LIKE\b",
+        r"CAST(\1 AS TEXT) LIKE",
+        sql,
+        flags=re.I,
+    )
+
+
 def _replace_placeholders(sql: str) -> str:
     result = []
     index = 1
@@ -348,7 +361,21 @@ def _normalize_params(params=None) -> list[Any]:
     if params is None:
         return []
     if isinstance(params, list):
-        return params
+        return [_normalize_param(value) for value in params]
     if isinstance(params, tuple):
-        return list(params)
-    return [params]
+        return [_normalize_param(value) for value in params]
+    return [_normalize_param(params)]
+
+
+def _normalize_param(value):
+    if not isinstance(value, str):
+        return value
+    if not re.match(r"^\d{4}-\d{2}-\d{2}(?:[ T]\d{2}:\d{2}:\d{2}(?:\.\d+)?)?$", value):
+        return value
+    text = value.replace("T", " ")
+    for fmt in ("%Y-%m-%d %H:%M:%S.%f", "%Y-%m-%d %H:%M:%S", "%Y-%m-%d"):
+        try:
+            return datetime.strptime(text, fmt)
+        except ValueError:
+            pass
+    return value
