@@ -10,6 +10,9 @@ import os
 import secrets
 from urllib.parse import quote, urlencode, urlsplit
 
+BOT_SUBSCRIPTION_DAYS = 30
+BOT_MAX_DEVICES = 1
+
 class XUIManager:
     def __init__(self):
         self.clients = {}
@@ -107,7 +110,9 @@ class XUIManager:
                 logger.error(f"Не удалось получить клиента для сервера {server_settings['id']}")
                 return None
 
-            end_time = datetime.now() + timedelta(days=trial_settings['left_day'])
+            subscription_days = BOT_SUBSCRIPTION_DAYS
+            max_devices = BOT_MAX_DEVICES
+            end_time = datetime.now() + timedelta(days=subscription_days)
             
             inbound_id = server_settings.get('inbound_id', 1)
             

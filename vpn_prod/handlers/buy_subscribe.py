@@ -2,7 +2,7 @@ import random
 import db_compat as aiosqlite
 from loguru import logger
 from typing import Optional, Dict
-from handlers.x_ui import xui_manager
+from handlers.x_ui import BOT_MAX_DEVICES, BOT_SUBSCRIPTION_DAYS, xui_manager
 from handlers.database import db
 from datetime import datetime, timedelta
 from handlers.admin.admin_kb import get_admin_keyboard
@@ -43,14 +43,14 @@ class SubscriptionManager:
                 logger.error(f"Тариф {tariff_id} не найден")
                 return None
 
-            end_date = datetime.now() + timedelta(days=tariff_data['left_day'])
+            end_date = datetime.now() + timedelta(days=BOT_SUBSCRIPTION_DAYS)
 
             client_config = await xui_manager.create_trial_user(
                 server_settings=tariff_data,
-                trial_settings={'left_day': tariff_data['left_day']},
+                trial_settings={'left_day': BOT_SUBSCRIPTION_DAYS},
                 telegram_id=user_id,
                 connection_type=connection_type,
-                max_devices=tariff_data.get('max_devices', 1),  # Берем из тарифа или 1 по умолчанию
+                max_devices=BOT_MAX_DEVICES,
                 traffic_limit_gb=tariff_data.get('traffic_limit_gb', 0)  # Лимит трафика в ГБ (0 = безлимит)
             )
 
@@ -133,7 +133,9 @@ class SubscriptionManager:
                 'client_email': client_email,
                 'sub_id': sub_id,
                 'end_date': end_date,
-                'tariff': tariff_data
+                'tariff': tariff_data,
+                'max_devices': BOT_MAX_DEVICES,
+                'subscription_days': BOT_SUBSCRIPTION_DAYS
             }
 
         except Exception as e:

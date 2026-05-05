@@ -176,7 +176,7 @@ async def check_crypto_payment(callback: CallbackQuery, state: FSMContext):
                 tariff = await cursor.fetchone()
         
         # Получаем max_devices из тарифа
-        max_devices = tariff.get('max_devices', 1) if isinstance(tariff, dict) else 1
+        max_devices = subscription.get('max_devices', 1)
         devices_text = f"{max_devices} устройств" if max_devices > 1 else "1 устройстве"
         if max_devices == 0:
             devices_text = "без ограничений"

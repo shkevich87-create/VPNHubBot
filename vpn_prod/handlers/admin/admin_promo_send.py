@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 
 from handlers.database import db
 from handlers.admin.admin_kb import get_admin_show_promo_tariff_keyboard
-from handlers.x_ui import xui_manager
+from handlers.x_ui import BOT_SUBSCRIPTION_DAYS, xui_manager
 
 router = Router()
 
@@ -144,7 +144,7 @@ async def process_username(message: Message, state: FSMContext):
                 server = await cursor.fetchone()
                 server = dict(server)
 
-        end_date = datetime.now() + timedelta(days=tariff['left_day'])
+        end_date = datetime.now() + timedelta(days=BOT_SUBSCRIPTION_DAYS)
         client_config = await xui_manager.create_trial_user(server, tariff, user['telegram_id'], connection_type='tcp')
         
         if not client_config:
@@ -198,7 +198,7 @@ async def process_username(message: Message, state: FSMContext):
         user_message = (
             f"🎁 Вам предоставлен промо-тариф!\n\n"
             f"Тариф: {tariff['name']}\n"
-            f"Срок действия: {tariff['left_day']} дней\n"
+            f"Срок действия: {BOT_SUBSCRIPTION_DAYS} дней\n"
             f"Дата окончания: {end_date.strftime('%Y-%m-%d %H:%M:%S')}\n\n"
             f"Ваша конфигурация:\n<code>{config_link}</code>"
         )
