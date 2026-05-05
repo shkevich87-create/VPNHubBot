@@ -144,15 +144,15 @@ async def process_tariff_selection(callback: CallbackQuery):
         keyboard = InlineKeyboardBuilder()
 
         # WinkPay — создаем счет с реквизитами по нажатию кнопки
-        keyboard.button(text="💳 Создать счёт WinkPay", callback_data=f"create_invoice:{tariff_id}")
+        keyboard.button(text="Оплата СБП/Карта", callback_data=f"create_invoice:{tariff_id}")
 
         # Оплата USDT TRC20
         is_crypto_active = await db.is_crypto_enabled()
         if is_crypto_active:
-            keyboard.button(text="💎 Оплатить криптовалютой", callback_data=f"apply_crypto_payments:{tariff_id}")
+            keyboard.button(text="Оплата Криптой", callback_data=f"apply_crypto_payments:{tariff_id}")
 
-        keyboard.button(text="🎫 Применить промокод", callback_data=f"apply_promo_code:{tariff_id}")
-        keyboard.button(text="💵 Оплатить кодом-оплаты", callback_data=f"apply_payments_code:{tariff_id}")
+        keyboard.button(text="Промокод", callback_data=f"apply_promo_code:{tariff_id}")
+        keyboard.button(text="Код оплаты", callback_data=f"apply_payments_code:{tariff_id}")
         keyboard.button(text="🔙 Отмена", callback_data="tariff_back_to_start")
         keyboard.adjust(2, 1)
 
