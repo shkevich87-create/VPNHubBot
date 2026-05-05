@@ -17,7 +17,7 @@ async def start_web_server():
     
     runner = web.AppRunner(app)
     await runner.setup()
-    site = web.TCPSite(runner, host="0.0.0.0", port=9090)
+    site = web.TCPSite(runner, host="127.0.0.1", port=9090)
     await site.start()
     logger.info("WinkPay callback сервер запущен на порту 9090")
 
@@ -37,4 +37,3 @@ async def main():
 
 if __name__ == '__main__':
     asyncio.run(main())
-

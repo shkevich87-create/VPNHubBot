@@ -97,4 +97,4 @@ if __name__ == '__main__':
     logger.add("logs/app.log", rotation="500 MB")
     port = int(os.getenv('WEB_PORT', '16389'))
     debug = os.getenv('FLASK_DEBUG', '0') == '1'
-    app.run(host='0.0.0.0', port=port, debug=debug)
+    app.run(host=os.getenv('WEB_HOST', '127.0.0.1'), port=port, debug=debug)
