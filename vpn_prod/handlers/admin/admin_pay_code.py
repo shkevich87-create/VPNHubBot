@@ -21,6 +21,17 @@ def generate_payment_code(length: int = 12) -> str:
     chars = string.ascii_uppercase + string.digits
     return ''.join(random.choices(chars, k=length))
 
+def parse_payment_code_date(value):
+    if isinstance(value, datetime):
+        return value
+    text = str(value).replace("T", " ")
+    for date_format in ("%Y-%m-%d %H:%M:%S.%f", "%Y-%m-%d %H:%M:%S"):
+        try:
+            return datetime.strptime(text, date_format)
+        except ValueError:
+            continue
+    return datetime.min
+
 @router.callback_query(F.data == "admin_show_payments_code")
 async def show_payment_codes(callback: CallbackQuery):
     """Обработчик отображения кодов оплаты"""
@@ -33,7 +44,7 @@ async def show_payment_codes(callback: CallbackQuery):
         
         recent_codes = sorted(
             payment_codes, 
-            key=lambda x: datetime.strptime(x['create_date'], '%Y-%m-%d %H:%M:%S'),
+            key=lambda x: parse_payment_code_date(x['create_date']),
             reverse=True
         )[:2]
         

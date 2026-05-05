@@ -30,16 +30,18 @@ class XUIManager:
             # Определяем протокол на основе connection_method (как в VPNHubBot)
             # connection_method: True (1) = HTTPS, False (0) = HTTP
             connection_method = server_settings.get('connection_method', False)
+            connection_method = str(connection_method).lower() in {'1', 'true', 'yes', 'on'}
             protocol = 'https' if connection_method else 'http'
             
-            url = server_settings['url']
+            url = str(server_settings['url']).strip().strip('/')
             # Удаляем протокол если он уже есть
             if url.startswith('http://') or url.startswith('https://'):
-                url = url.split('://', 1)[1]
+                url = url.split('://', 1)[1].strip().strip('/')
             
             # Удаляем порт из URL если он там есть (чтобы не было дубликата)
             if ':' in url:
                 url = url.split(':')[0]
+            url = url.strip().strip('/')
             
             # Формируем полный URL с нужным протоколом
             url = f"{protocol}://{url}:{server_settings['port']}/{server_settings['secret_path']}"

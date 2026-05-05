@@ -112,6 +112,11 @@ async def confirm_payment(callback: CallbackQuery, state: FSMContext):
     """Подтверждение оплаты кодом"""
     try:
         data = await state.get_data()
+        if 'payment_code' not in data or 'tariff_id' not in data:
+            await callback.answer("Сессия оплаты истекла. Введите код заново.", show_alert=True)
+            await state.clear()
+            return
+
         payment_code = data['payment_code']
         tariff_id = data['tariff_id']
         
