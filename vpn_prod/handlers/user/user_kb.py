@@ -5,6 +5,7 @@ def get_start_keyboard(is_admin: bool = False) -> ReplyKeyboardMarkup:
     keyboard_buttons = [
         [KeyboardButton(text="👤 Личный кабинет"), KeyboardButton(text="🎁 Пробный период")],
         [KeyboardButton(text="💳 Тарифы"), KeyboardButton(text="📞 Техподдержка")],
+        [KeyboardButton(text="🤝 Порекомендовать")],
     ]
     
     # Добавляем кнопку админ-панели для администраторов
@@ -24,6 +25,7 @@ def get_lk_keyboard() -> ReplyKeyboardMarkup:
         keyboard=[
             [KeyboardButton(text="📋 Мои подписки"), KeyboardButton(text="💰 Мои платежи")],
             [KeyboardButton(text="📢 Инструкции"), KeyboardButton(text="💬 Помощь")],
+            [KeyboardButton(text="👥 Мои приглашения")],
             [KeyboardButton(text="🏠 Главное меню")],
         ],
         resize_keyboard=True,

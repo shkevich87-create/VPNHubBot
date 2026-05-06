@@ -52,6 +52,8 @@ async def process_lk_button(message: Message):
 
 @router.message(Command("ref"))
 @router.message(F.text == "🤝 Реферальная ссылка")
+@router.message(F.text == "🤝 Порекомендовать")
+@router.message(F.text == "👥 Мои приглашения")
 async def show_referral_link(message: Message):
     """Показать реферальную ссылку пользователя."""
     try:
