@@ -25,6 +25,13 @@ async def main_menu_button(message: Message):
 async def start_command(message: Message):
     """Обработчик команды /start"""
     try:
+        referred_by_code = None
+        parts = (message.text or "").split(maxsplit=1)
+        if len(parts) > 1:
+            start_payload = parts[1].strip()
+            if start_payload.lower().startswith("ref_"):
+                referred_by_code = start_payload
+
         async with aiosqlite.connect(db.db_path) as conn:
             conn.row_factory = aiosqlite.Row
             async with conn.execute(
@@ -70,7 +77,8 @@ async def start_command(message: Message):
         await db.register_user(
             telegram_id=message.from_user.id,
             username=message.from_user.username,
-            bot=message.bot
+            bot=message.bot,
+            referred_by_code=referred_by_code
         )
 
         if start_message and start_message['image_path'] and os.path.exists(start_message['image_path']):

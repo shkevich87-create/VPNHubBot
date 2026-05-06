@@ -346,6 +346,12 @@ async def check_payment(callback: CallbackQuery, state: FSMContext):
                             ))
                             await conn.commit()
 
+                await db.apply_referral_reward(
+                    referred_user_id=callback.from_user.id,
+                    payment_id=payment_id,
+                    bot=callback.bot
+                )
+
                 # Получаем информацию о max_devices из тарифа
                 async with aiosqlite.connect(db.db_path) as conn:
                     conn.row_factory = aiosqlite.Row

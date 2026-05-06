@@ -262,6 +262,45 @@ class XUIManager:
             logger.exception("Полный стек ошибки:")
             return None
 
+    async def extend_client_expiry(self, server_settings: Dict, client_uuid: str, client_email: str, new_end_date) -> bool:
+        """Продление существующего клиента в 3x-ui."""
+        try:
+            client_api = await self.get_client(server_settings)
+            if not client_api:
+                return False
+
+            target_client = None
+            if client_email:
+                target_client = client_api.client.get_by_email(client_email)
+
+            if not target_client:
+                inbound_id = server_settings.get('inbound_id', 1)
+                inbounds = client_api.inbound.get_list()
+                inbound = self._find_inbound(inbounds, inbound_id)
+                if inbound:
+                    for existing_client in inbound.settings.clients:
+                        existing_uuid = getattr(existing_client, 'id', None) or getattr(existing_client, 'uuid', None)
+                        if existing_uuid == client_uuid or getattr(existing_client, 'email', None) == client_email:
+                            target_client = existing_client
+                            break
+
+            if not target_client:
+                logger.error(f"Не найден клиент 3x-ui для продления: uuid={client_uuid}, email={client_email}")
+                return False
+
+            update_uuid = client_uuid or getattr(target_client, 'id', None) or getattr(target_client, 'uuid', None)
+            if not update_uuid:
+                logger.error(f"Не найден UUID клиента 3x-ui для продления: email={client_email}")
+                return False
+
+            target_client.expiry_time = int(new_end_date.timestamp() * 1000)
+            client_api.client.update(update_uuid, target_client)
+            logger.info(f"Клиент 3x-ui продлен до {new_end_date}: uuid={update_uuid}, email={client_email}")
+            return True
+        except Exception as e:
+            logger.error(f"Ошибка при продлении клиента 3x-ui: {e}")
+            return False
+
     async def delete_user(self, server_settings: Dict, telegram_id: int) -> bool:
         """Удаление пользователя"""
         try:

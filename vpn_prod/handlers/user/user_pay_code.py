@@ -143,6 +143,12 @@ async def confirm_payment(callback: CallbackQuery, state: FSMContext):
         )
         
         if subscription:
+            await db.apply_referral_reward(
+                referred_user_id=callback.from_user.id,
+                payment_id=f"code:{payment_code['pay_code']}",
+                bot=callback.bot
+            )
+
             from handlers.user.user_kb import get_success_by_keyboard
             
             max_devices = subscription.get('max_devices', 1)

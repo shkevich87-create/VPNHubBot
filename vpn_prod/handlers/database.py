@@ -8,6 +8,8 @@ from handlers.admin.admin_kb import get_admin_keyboard
 import random
 import string
 
+REFERRAL_BONUS_DAYS = 14
+
 os.makedirs('instance', exist_ok=True)
 os.makedirs('handlers', exist_ok=True)
 
@@ -254,6 +256,10 @@ class Database:
         await self._add_column_if_missing(conn, "bot_settings", "reg_notify", "TEXT")
         await self._add_column_if_missing(conn, "bot_settings", "pay_notify", "TEXT")
 
+        await self._add_column_if_missing(conn, "user", "referral_code", "TEXT")
+        await self._add_column_if_missing(conn, "user", "referral_count", "INTEGER DEFAULT 0")
+        await self._add_column_if_missing(conn, "user", "referred_by", "TEXT")
+
         await self._add_column_if_missing(conn, "server_settings", "inbound_id_promo", "INTEGER DEFAULT 2")
 
         await self._add_column_if_missing(conn, "tariff", "max_devices", "INTEGER DEFAULT 1")
@@ -279,6 +285,18 @@ class Database:
         await self._add_column_if_missing(conn, "payments_attempts", "processed_at", "INTEGER")
         await self._add_column_if_missing(conn, "payments_attempts", "external_id", "TEXT")
 
+        await conn.execute(f"""
+            CREATE TABLE IF NOT EXISTS referral_rewards (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                referrer_id INTEGER NOT NULL,
+                referred_id INTEGER NOT NULL UNIQUE,
+                payment_id TEXT,
+                subscription_id INTEGER,
+                reward_days INTEGER NOT NULL DEFAULT {REFERRAL_BONUS_DAYS},
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+
     async def _create_indexes(self, conn: aiosqlite.Connection):
         indexes = [
             "CREATE INDEX IF NOT EXISTS idx_user_telegram_id ON user(telegram_id)",
@@ -296,6 +314,7 @@ class Database:
             "CREATE INDEX IF NOT EXISTS idx_payments_date ON payments(date)",
             "CREATE INDEX IF NOT EXISTS idx_payments_attempts_user ON payments_attempts(user_id)",
             "CREATE INDEX IF NOT EXISTS idx_crypto_pending_status_expires ON crypto_pending_payments(status, expires_at)",
+            "CREATE INDEX IF NOT EXISTS idx_referral_rewards_referrer ON referral_rewards(referrer_id)",
         ]
         for statement in indexes:
             await conn.execute(statement)
@@ -340,33 +359,60 @@ class Database:
                 servers = await cursor.fetchall()
                 return [dict(server) for server in servers]
 
-    async def register_user(self, telegram_id: int, username: str = None, bot = None) -> bool:
+    async def _generate_referral_code(self, conn: aiosqlite.Connection) -> str:
+        while True:
+            referral_code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
+
+            async with conn.execute(
+                'SELECT id FROM user WHERE referral_code = ?',
+                (referral_code,)
+            ) as cursor:
+                if not await cursor.fetchone():
+                    return referral_code
+
+    async def register_user(self, telegram_id: int, username: str = None, bot = None, referred_by_code: str = None) -> bool:
         """Регистрация нового пользователя"""
         try:
             current_date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             
             async with aiosqlite.connect(self.db_path) as db:
                 async with db.execute(
-                    'SELECT id FROM user WHERE telegram_id = ?',
+                    'SELECT id, referral_code FROM user WHERE telegram_id = ?',
                     (telegram_id,)
                 ) as cursor:
-                    if await cursor.fetchone():
+                    existing_user = await cursor.fetchone()
+                    if existing_user:
+                        if not existing_user[1]:
+                            referral_code = await self._generate_referral_code(db)
+                            await db.execute(
+                                'UPDATE user SET referral_code = ? WHERE telegram_id = ?',
+                                (referral_code, telegram_id)
+                            )
+                            await db.commit()
                         return True
-                
-                while True:
-                    referral_code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
-                    
+
+                referred_by = None
+                if referred_by_code:
+                    normalized_code = referred_by_code.upper().replace("REF_", "", 1)
                     async with db.execute(
-                        'SELECT id FROM user WHERE referral_code = ?',
-                        (referral_code,)
+                        'SELECT telegram_id FROM user WHERE referral_code = ?',
+                        (normalized_code,)
                     ) as cursor:
-                        if not await cursor.fetchone():
-                            break
+                        referrer = await cursor.fetchone()
+                        if referrer and int(referrer[0]) != int(telegram_id):
+                            referred_by = str(referrer[0])
+
+                referral_code = await self._generate_referral_code(db)
                 
                 await db.execute(
-                    'INSERT INTO user (telegram_id, username, referral_code) VALUES (?, ?, ?)',
-                    (telegram_id, username, referral_code)
+                    'INSERT INTO user (telegram_id, username, referral_code, referred_by) VALUES (?, ?, ?, ?)',
+                    (telegram_id, username, referral_code, referred_by)
                 )
+                if referred_by:
+                    await db.execute(
+                        'UPDATE user SET referral_count = COALESCE(referral_count, 0) + 1 WHERE telegram_id = ?',
+                        (int(referred_by),)
+                    )
                 await db.commit()
                 
                 async with db.execute(
@@ -400,6 +446,142 @@ class Database:
             
         except Exception as e:
             logger.error(f"Ошибка при регистрации пользователя {telegram_id}: {e}")
+            return False
+
+    def _parse_datetime(self, value) -> datetime:
+        if isinstance(value, datetime):
+            return value
+        text = str(value).replace("T", " ").split("+", 1)[0]
+        for fmt in ("%Y-%m-%d %H:%M:%S.%f", "%Y-%m-%d %H:%M:%S", "%Y-%m-%d"):
+            try:
+                return datetime.strptime(text, fmt)
+            except ValueError:
+                continue
+        return datetime.fromisoformat(str(value))
+
+    async def get_referral_stats(self, telegram_id: int) -> Dict:
+        try:
+            async with aiosqlite.connect(self.db_path) as conn:
+                conn.row_factory = aiosqlite.Row
+                async with conn.execute(
+                    'SELECT referral_code, referral_count FROM user WHERE telegram_id = ?',
+                    (telegram_id,)
+                ) as cursor:
+                    user = await cursor.fetchone()
+
+                if not user:
+                    return {'referral_code': None, 'referral_count': 0, 'reward_count': 0}
+
+                referral_code = user['referral_code']
+                if not referral_code:
+                    referral_code = await self._generate_referral_code(conn)
+                    await conn.execute(
+                        'UPDATE user SET referral_code = ? WHERE telegram_id = ?',
+                        (referral_code, telegram_id)
+                    )
+                    await conn.commit()
+
+                async with conn.execute(
+                    'SELECT COUNT(*) FROM referral_rewards WHERE referrer_id = ?',
+                    (telegram_id,)
+                ) as cursor:
+                    rewards = await cursor.fetchone()
+
+                return {
+                    'referral_code': referral_code,
+                    'referral_count': user['referral_count'] or 0,
+                    'reward_count': rewards[0] if rewards else 0
+                }
+        except Exception as e:
+            logger.error(f"Ошибка при получении реферальной статистики для {telegram_id}: {e}")
+            return {'referral_code': None, 'referral_count': 0, 'reward_count': 0}
+
+    async def apply_referral_reward(self, referred_user_id: int, payment_id: str = None, bot: Bot = None) -> bool:
+        try:
+            async with aiosqlite.connect(self.db_path) as conn:
+                conn.row_factory = aiosqlite.Row
+                async with conn.execute(
+                    'SELECT referred_by FROM user WHERE telegram_id = ?',
+                    (referred_user_id,)
+                ) as cursor:
+                    referred = await cursor.fetchone()
+                if not referred or not referred['referred_by']:
+                    return False
+
+                referrer_id = int(referred['referred_by'])
+                if referrer_id == int(referred_user_id):
+                    return False
+
+                async with conn.execute(
+                    'SELECT id FROM referral_rewards WHERE referred_id = ?',
+                    (referred_user_id,)
+                ) as cursor:
+                    if await cursor.fetchone():
+                        return False
+
+                async with conn.execute("""
+                    SELECT us.*, s.url, s.port, s.secret_path, s.username, s.password, s.inbound_id, s.connection_method
+                    FROM user_subscription us
+                    JOIN server_settings s ON us.server_id = s.id
+                    WHERE us.user_id = ? AND us.is_active = 1 AND datetime(us.end_date) > datetime('now', 'localtime')
+                    ORDER BY datetime(us.end_date) DESC
+                    LIMIT 1
+                """, (referrer_id,)) as cursor:
+                    subscription = await cursor.fetchone()
+
+                if not subscription:
+                    logger.info(f"Реферальный бонус не начислен: у {referrer_id} нет активной подписки")
+                    return False
+
+                current_end = self._parse_datetime(subscription['end_date'])
+                new_end = max(current_end, datetime.now()) + timedelta(days=REFERRAL_BONUS_DAYS)
+
+                try:
+                    from handlers.x_ui import xui_manager
+                    xui_updated = await xui_manager.extend_client_expiry(
+                        server_settings={key: subscription[key] for key in subscription.keys()},
+                        client_uuid=subscription['client_uuid'],
+                        client_email=subscription['client_email'],
+                        new_end_date=new_end
+                    )
+                except Exception as e:
+                    logger.error(f"Ошибка при продлении клиента 3x-ui по рефералке: {e}")
+                    xui_updated = False
+
+                if not xui_updated:
+                    return False
+
+                await conn.execute(
+                    'UPDATE user_subscription SET end_date = ? WHERE id = ?',
+                    (new_end.strftime("%Y-%m-%d %H:%M:%S.%f"), subscription['id'])
+                )
+                await conn.execute("""
+                    INSERT INTO referral_rewards (referrer_id, referred_id, payment_id, subscription_id, reward_days)
+                    VALUES (?, ?, ?, ?, ?)
+                """, (referrer_id, referred_user_id, payment_id, subscription['id'], REFERRAL_BONUS_DAYS))
+                await conn.commit()
+
+            logger.info(
+                f"Реферальный бонус начислен: referrer={referrer_id}, referred={referred_user_id}, "
+                f"subscription={subscription['id']}, days={REFERRAL_BONUS_DAYS}"
+            )
+
+            if bot:
+                try:
+                    await bot.send_message(
+                        chat_id=referrer_id,
+                        text=(
+                            "🎁 По вашей реферальной ссылке прошла успешная оплата.\n\n"
+                            f"Мы продлили вашу активную подписку на {REFERRAL_BONUS_DAYS} дней.\n"
+                            f"Новая дата окончания: {new_end.strftime('%d.%m.%Y')}"
+                        )
+                    )
+                except Exception as e:
+                    logger.error(f"Ошибка при отправке уведомления о реферальном бонусе: {e}")
+
+            return True
+        except Exception as e:
+            logger.error(f"Ошибка при начислении реферального бонуса для {referred_user_id}: {e}")
             return False
 
     async def get_user(self, telegram_id: int) -> Optional[Dict]:

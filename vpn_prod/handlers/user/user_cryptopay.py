@@ -169,6 +169,12 @@ async def check_crypto_payment(callback: CallbackQuery, state: FSMContext):
             )
             return
 
+        await db.apply_referral_reward(
+            referred_user_id=payment['user_id'],
+            payment_id=f"crypto:{payment_id}",
+            bot=callback.bot
+        )
+
         # Получаем информацию о тарифе
         async with aiosqlite.connect(db.db_path) as db_conn:
             db_conn.row_factory = aiosqlite.Row

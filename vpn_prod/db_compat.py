@@ -207,6 +207,7 @@ _SERIAL_TABLES = {
     "payments",
     "promocodes",
     "payments_code",
+    "referral_rewards",
     "crypto_pending_payments",
     "notify_settings",
     "support_info",
