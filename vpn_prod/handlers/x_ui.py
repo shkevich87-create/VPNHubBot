@@ -12,6 +12,7 @@ from urllib.parse import quote, urlencode, urlsplit
 
 BOT_SUBSCRIPTION_DAYS = 30
 BOT_MAX_DEVICES = 1
+BOT_REALITY_FLOW = os.getenv("XUI_REALITY_FLOW", "").strip()
 
 class XUIManager:
     def __init__(self):
@@ -145,13 +146,9 @@ class XUIManager:
             # Определяем тип inbound и устанавливаем правильные параметры
             has_reality = hasattr(inbound.stream_settings, 'reality_settings') and inbound.stream_settings.reality_settings
             
-            # Параметры зависят от типа inbound
-            if has_reality:
-                # Для Reality TCP нужен flow
-                client_flow = "xtls-rprx-vision"
-            else:
-                # Для других типов flow не нужен
-                client_flow = ""
+            # Flow должен совпадать с рабочими ручными клиентами панели.
+            # По умолчанию 3x-ui часто создает Reality/VLESS клиентов без flow.
+            client_flow = BOT_REALITY_FLOW if has_reality else ""
             
             new_client = Client(
                 id=client_id,
@@ -215,20 +212,26 @@ class XUIManager:
                 
                 params = {
                     'type': 'tcp',  # Reality работает только с TCP!
+                    'encryption': 'none',
                     'security': 'reality',
                     'pbk': reality_settings['settings']['publicKey'],
-                    'fp': 'chrome',
-                    'sni': reality_settings['serverNames'][0],
-                    'sid': reality_settings['shortIds'][0],
-                    'spx': '/',
-                    'flow': 'xtls-rprx-vision'  # Обязательно для Reality
+                    'fp': reality_settings.get('settings', {}).get('fingerprint') or 'chrome',
+                    'sni': (
+                        reality_settings.get('settings', {}).get('serverName')
+                        or reality_settings.get('serverNames', [''])[0]
+                    ),
+                    'sid': reality_settings.get('shortIds', [''])[0],
+                    'spx': reality_settings.get('settings', {}).get('spiderX') or '/',
                 }
+                if client_flow:
+                    params['flow'] = client_flow
             else:
                 # Обычный inbound без Reality - используем выбранный тип
                 logger.info(f"Обычный inbound - используется тип подключения: {connection_type}")
                 
                 params = {
                     'type': connection_type,
+                    'encryption': 'none',
                     'security': 'none'  # Без Reality используем none или tls
                 }
                 
