@@ -184,6 +184,11 @@ async def main():
     print(f"Server: {server.get('name')} ({server.get('url')}), inbound_id={server.get('inbound_id')}")
     print(f"Bot inbound found: {getattr(bot_inbound, 'id', None)}")
     print_client("Bot client", bot_client)
+    try:
+        bot_ips = api.client.get_ips(args.email)
+    except Exception as exc:
+        bot_ips = [f"error: {exc}"]
+    print(f"Bot client IPs : {bot_ips}")
 
     if subscription:
         print("\nBot subscription")
@@ -202,6 +207,11 @@ async def main():
         manual_inbound, manual_client = find_client(inbounds, args.manual_email)
         print(f"\nManual inbound found: {getattr(manual_inbound, 'id', None)}")
         print_client("Manual client", manual_client)
+        try:
+            manual_ips = api.client.get_ips(args.manual_email)
+        except Exception as exc:
+            manual_ips = [f"error: {exc}"]
+        print(f"Manual IPs    : {manual_ips}")
         compare_clients(bot_client, manual_client)
 
 

@@ -66,7 +66,15 @@ async def get_client_info(api: py3xui.AsyncApi, inbound_id: int, client_email: s
                 clients_response = api.client.get_by_email(inbound_id, client_email)
             except TypeError:
                 raise type_error
-        
+
+        if clients_response and not hasattr(clients_response, 'obj'):
+            return {
+                'email': getattr(clients_response, 'email', ''),
+                'enable': getattr(clients_response, 'enable', False),
+                'up': getattr(clients_response, 'up', 0),
+                'down': getattr(clients_response, 'down', 0),
+            }
+
         if clients_response and hasattr(clients_response, 'obj'):
             client_data = clients_response.obj
             if isinstance(client_data, list) and len(client_data) > 0:
@@ -88,6 +96,18 @@ async def get_client_info(api: py3xui.AsyncApi, inbound_id: int, client_email: s
         return None
 
 
+async def get_client_ips(api: py3xui.Api, client_email: str) -> List[str]:
+    """Получение IP-адресов клиента из 3x-ui."""
+    try:
+        ips = api.client.get_ips(client_email)
+        if not ips:
+            return []
+        return sorted({ip for ip in ips if ip})
+    except Exception as e:
+        logger.debug(f"Не удалось получить IP клиента {client_email}: {e}")
+        return []
+
+
 async def update_first_ip(subscription_id: int, ip_address: str) -> bool:
     """Сохранение первого IP-адреса клиента"""
     try:
@@ -104,11 +124,29 @@ async def update_first_ip(subscription_id: int, ip_address: str) -> bool:
         return False
 
 
-async def block_client(api: py3xui.AsyncApi, inbound_id: int, client_uuid: str, subscription_id: int, reason: str) -> bool:
+async def block_client(api: py3xui.AsyncApi, inbound_id: int, client_uuid: str, client_email: str, subscription_id: int, reason: str) -> bool:
     """Блокировка клиента (отключение enable)"""
     try:
-        # Отключаем клиента в 3x-ui
-        api.client.update(inbound_id, client_uuid, enable=False)
+        client = None
+        inbounds = api.inbound.get_list()
+        for inbound in inbounds:
+            for existing_client in inbound.settings.clients:
+                existing_uuid = getattr(existing_client, 'id', None) or getattr(existing_client, 'uuid', None)
+                existing_email = getattr(existing_client, 'email', None)
+                if existing_uuid == client_uuid or existing_email == client_email:
+                    client = existing_client
+                    inbound_id = getattr(inbound, 'id', inbound_id)
+                    break
+            if client:
+                break
+
+        if client:
+            client.enable = False
+            if not getattr(client, 'inbound_id', None):
+                client.inbound_id = inbound_id
+            api.client.update(client_uuid, client)
+        else:
+            logger.warning(f"Не удалось найти клиента в 3x-ui для отключения: {client_uuid}")
         
         # Деактивируем в БД
         async with aiosqlite.connect(db.db_path) as conn:
@@ -180,15 +218,36 @@ async def monitor_subscription_ip(subscription: Dict) -> Dict:
         if not client_info:
             result['message'] = 'Клиент не найден или не активен'
             return result
+
+        client_ips = await get_client_ips(api, client_email)
+        if len(client_ips) > 1:
+            reason = f"Превышен лимит устройств/IP: {len(client_ips)} IP ({', '.join(client_ips)})"
+            blocked = await block_client(
+                api,
+                subscription['inbound_id'],
+                client_uuid,
+                client_email,
+                subscription['id'],
+                reason
+            )
+            result['status'] = 'blocked' if blocked else 'error'
+            result['message'] = reason
+            result['action'] = 'blocked' if blocked else None
+            return result
         
         # Проверяем, есть ли трафик (признак активности)
         has_traffic = (client_info['up'] > 0 or client_info['down'] > 0)
         
-        if has_traffic and not subscription['first_ip']:
-            # Клиент активен, но IP пока не сохранен
-            # В будущем здесь можно добавить логику получения IP
+        if client_ips and not subscription['first_ip']:
+            await update_first_ip(subscription['id'], client_ips[0])
+            result['status'] = 'ok'
+            result['message'] = f"Сохранен первый IP: {client_ips[0]}"
+        elif client_ips and subscription['first_ip'] and subscription['first_ip'] != client_ips[0]:
+            await update_first_ip(subscription['id'], client_ips[0])
+            result['message'] = f"IP обновлен: {subscription['first_ip']} → {client_ips[0]}"
+        elif has_traffic and not subscription['first_ip']:
             result['status'] = 'needs_ip'
-            result['message'] = 'Клиент активен, IP будет сохранен при наличии данных'
+            result['message'] = 'Клиент активен, но 3x-ui пока не вернул IP'
         else:
             result['message'] = 'Клиент активен' if has_traffic else 'Клиент не активен'
             
